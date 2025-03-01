@@ -1,6 +1,6 @@
 # Torchless EasyOCR
 
-This package is EasyOCR-based English optical character recognition. Unlike EasyOCR, this package uses pre-saved with `onnx` English language model, so it doesn't need a 1-2 Gb `pytorch` dependency. This is particularly useful for deleloping light-weight applications that utilize text recognition.
+This package is EasyOCR-based English optical character recognition. Unlike EasyOCR, package uses pre-saved with `onnx` English language model, so it doesn't need a 1-2 Gb `pytorch` dependency. This is particularly useful for deleloping light-weight applications that utilize text recognition.
 
 #### Comparison for virtual env size
 
