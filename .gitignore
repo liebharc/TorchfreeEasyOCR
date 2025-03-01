@@ -1,2 +1,6 @@
 __pycache__
 test.py 
+dist
+build
+torchfree_ocr.egg-info
+venv
