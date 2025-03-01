@@ -1,52 +1,24 @@
 # -*- coding: utf-8 -*-
 
 from .recognition import get_recognizer, get_text
-from .utils import group_text_box, get_image_list, diff, reformat_input
+from .utils import group_text_box, get_image_list, diff, reformat_input, reformat_input_batched, get_paragraph, merge_to_free
 from .config import BASE_PATH, recognition_models, imgH
-import os
 from .detection import get_textbox
+import os
+import json
+
 
 
 class Reader(object):
 
-    def __init__(self,
-                 user_network_directory=None, detect_network="craft", 
-                 recog_network='standard', download_enabled=True, 
-                 detector=True, recognizer=True, verbose=True, 
-                 quantize=True, cudnn_benchmark=False):
-        """Create an EasyOCR Reader
-
-        Parameters:
-            lang_list (list): Language codes (ISO 639) for languages to be recognized during analysis.
-
-            gpu (bool): Enable GPU support (default)
-
-            model_storage_directory (string): Path to directory for model data. If not specified,
-            models will be read from a directory as defined by the environment variable
-            EASYOCR_MODULE_PATH (preferred), MODULE_PATH (if defined), or ~/.EasyOCR/.
-
-            user_network_directory (string): Path to directory for custom network architecture.
-            If not specified, it is as defined by the environment variable
-            EASYOCR_MODULE_PATH (preferred), MODULE_PATH (if defined), or ~/.EasyOCR/.
-
-            download_enabled (bool): Enabled downloading of model data via HTTP (default).
-        """
-        self.verbose = verbose
-        self.download_enabled = download_enabled
+    def __init__(self, recognizer=True):
 
         self.device = 'cpu'
-
-        # check and download detection model
-        self.support_detection_network = ['craft', 'dbnet18']
-        self.quantize=quantize, 
-        self.cudnn_benchmark=cudnn_benchmark
         
-        # recognition model
         separator_list = {}
 
-        self.setModelLanguage('english', ['en'], ['en'], '["en"]')
+        self.model_lang = 'english'
         model = recognition_models['gen2']['english_g2']
-        recog_network = 'generation2'
         self.character = model['characters']
 
         self.setLanguageList(['en'], model)
@@ -54,26 +26,12 @@ class Reader(object):
         dict_list = {}
         for lang in ['en']:
             dict_list[lang] = os.path.join(BASE_PATH, 'dict', lang + ".txt")
-            
+
         if recognizer:
-            if recog_network == 'generation1':
-                network_params = {
-                    'input_channel': 1,
-                    'output_channel': 512,
-                    'hidden_size': 512
-                    }
-            elif recog_network == 'generation2':
-                network_params = {
-                    'input_channel': 1,
-                    'output_channel': 256,
-                    'hidden_size': 256
-                    }
-            self.converter = get_recognizer(recog_network, network_params,\
-                                            self.character, separator_list,\
-                                            dict_list, device = self.device, quantize=quantize)
+            self.converter = get_recognizer(self.character, separator_list, dict_list)
 
     
-    def setModelLanguage(self, language, lang_list, list_lang, list_lang_string):
+    def setModelLanguage(self, language):
         self.model_lang = language
 
     def setLanguageList(self, lang_list, model):
@@ -150,7 +108,6 @@ class Reader(object):
         else:
             ignore_char = ''.join(set(self.character)-set(self.lang_char))
 
-        if self.model_lang in ['chinese_tra','chinese_sim']: decoder = 'greedy'
 
         if (horizontal_list==None) and (free_list==None):
             y_max, x_max = img_cv_grey.shape
@@ -180,7 +137,23 @@ class Reader(object):
 
         direction_mode = 'ltr'
 
-        return result
+        if paragraph:
+            result = get_paragraph(result, x_ths=x_ths, y_ths=y_ths, mode = direction_mode)
+
+        if detail == 0:
+            return [item[1] for item in result]
+        elif output_format == 'dict':
+            if paragraph:
+                return [ {'boxes':item[0],'text':item[1]} for item in result]    
+            return [ {'boxes':item[0],'text':item[1],'confident':item[2]} for item in result]
+        elif output_format == 'json':
+            if paragraph:
+                return [json.dumps({'boxes':[list(map(int, lst)) for lst in item[0]],'text':item[1]}, ensure_ascii=False) for item in result]
+            return [json.dumps({'boxes':[list(map(int, lst)) for lst in item[0]],'text':item[1],'confident':item[2]}, ensure_ascii=False) for item in result]
+        elif output_format == 'free_merge':
+            return merge_to_free(result, free_list)
+        else:
+            return result
 
     def readtext(self, image, decoder = 'greedy', beamWidth= 5, batch_size = 1,\
                  workers = 0, allowlist = None, blocklist = None, detail = 1,\
@@ -217,3 +190,46 @@ class Reader(object):
                                 filter_ths, y_ths, x_ths, False, output_format)
 
         return result
+    
+    def readtext_batched(self, image, n_width=None, n_height=None,\
+                        decoder = 'greedy', beamWidth= 5, batch_size = 1,\
+                        workers = 0, allowlist = None, blocklist = None, detail = 1,\
+                        rotation_info = None, paragraph = False, min_size = 20,\
+                        contrast_ths = 0.1,adjust_contrast = 0.5, filter_ths = 0.003,\
+                        text_threshold = 0.7, low_text = 0.4, link_threshold = 0.4,\
+                        canvas_size = 2560, mag_ratio = 1.,\
+                        slope_ths = 0.1, ycenter_ths = 0.5, height_ths = 0.5,\
+                        width_ths = 0.5, y_ths = 0.5, x_ths = 1.0, add_margin = 0.1, 
+                        threshold = 0.2, bbox_min_score = 0.2, bbox_min_size = 3, max_candidates = 0,
+                        output_format='standard'):
+        '''
+        Parameters:
+        image: file path or numpy-array or a byte stream object
+        When sending a list of images, they all must of the same size,
+        the following parameters will automatically resize if they are not None
+        n_width: int, new width
+        n_height: int, new height
+        '''
+        img, img_cv_grey = reformat_input_batched(image, n_width, n_height)
+
+        horizontal_list_agg, free_list_agg = self.detect(img, 
+                                                    min_size = min_size, text_threshold = text_threshold,\
+                                                    low_text = low_text, link_threshold = link_threshold,\
+                                                    canvas_size = canvas_size, mag_ratio = mag_ratio,\
+                                                    slope_ths = slope_ths, ycenter_ths = ycenter_ths,\
+                                                    height_ths = height_ths, width_ths= width_ths,\
+                                                    add_margin = add_margin, reformat = False,\
+                                                    threshold = threshold, bbox_min_score = bbox_min_score,\
+                                                    bbox_min_size = bbox_min_size, max_candidates = max_candidates
+                                                    )
+        result_agg = []
+        # put img_cv_grey in a list if its a single img
+        img_cv_grey = [img_cv_grey] if len(img_cv_grey.shape) == 2 else img_cv_grey
+        for grey_img, horizontal_list, free_list in zip(img_cv_grey, horizontal_list_agg, free_list_agg):
+            result_agg.append(self.recognize(grey_img, horizontal_list, free_list,\
+                                            decoder, beamWidth, batch_size,\
+                                            workers, allowlist, blocklist, detail, rotation_info,\
+                                            paragraph, contrast_ths, adjust_contrast,\
+                                            filter_ths, y_ths, x_ths, False, output_format))
+
+        return result_agg

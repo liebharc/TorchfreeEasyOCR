@@ -2,7 +2,10 @@ import os
 
 os.environ["LRU_CACHE_CAPACITY"] = "1"
 
-BASE_PATH = os.path.dirname(__file__)
+BASE_PATH   = os.path.dirname(__file__)
+DETECT_PATH = os.path.join(BASE_PATH, "onnx", "detectionModel.onnx")
+RECOG_PATH  = os.path.join(BASE_PATH, "onnx", "recognitionModel.onnx")
+
 
 imgH = 64
 

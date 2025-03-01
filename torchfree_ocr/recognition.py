@@ -1,10 +1,10 @@
 from PIL import Image
 import numpy as np
+from onnxruntime import InferenceSession
 from .utils import CTCLabelConverter
-import math, os
-from .config import BASE_PATH
+from .config import RECOG_PATH
+import math
 
-import onnxruntime
 
 def np_softmax(x, dim=-1):
     means = np.max(x, axis=dim, keepdims=True)
@@ -169,7 +169,7 @@ def recognizer_predict(converter, test_loader, batch_max_length,\
         batch_size = image_tensors.shape[0]
         image = image_tensors[0]
 
-        ort_session = onnxruntime.InferenceSession(os.path.join(BASE_PATH, "recognitionModel.onnx"))
+        ort_session = InferenceSession(RECOG_PATH)
         ort_inputs = {ort_session.get_inputs()[0].name: image}
         ort_outs = ort_session.run(None, ort_inputs)
         preds = ort_outs[0]
@@ -190,6 +190,12 @@ def recognizer_predict(converter, test_loader, batch_max_length,\
             preds_index = preds_index.reshape(-1)
 
             preds_str = converter.decode_greedy(preds_index, preds_size)
+        elif decoder == 'beamsearch':
+            preds_str = converter.decode_beamsearch(preds_prob, beamWidth=beamWidth)
+        elif decoder == 'wordbeamsearch':
+            preds_str = converter.decode_wordbeamsearch(preds_prob, beamWidth=beamWidth)
+        else:
+            raise ValueError(f"No such decoder: {decoder}")
 
         values = preds_prob.max(axis=2)
         indices = preds_prob.argmax(axis=2)
@@ -208,16 +214,14 @@ def recognizer_predict(converter, test_loader, batch_max_length,\
     return result
     
 
-def get_recognizer(recog_network, network_params, character,\
-                   separator_list, dict_list,\
-                   device = 'cpu', quantize = True):
+def get_recognizer(character, separator_list, dict_list):
 
     converter = CTCLabelConverter(character, separator_list, dict_list)
 
     return converter
 
 def get_text(character, imgH, imgW, converter, image_list,\
-             ignore_char = '',decoder = 'greedy', beamWidth =5, batch_size=1, contrast_ths=0.1,\
+             ignore_char = '', decoder = 'greedy', beamWidth =5, batch_size=1, contrast_ths=0.1,\
              adjust_contrast=0.5, filter_ths = 0.003, device = 'cpu'):
     batch_max_length = int(imgW/10)
 

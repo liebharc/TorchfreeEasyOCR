@@ -1,9 +1,9 @@
-import onnxruntime
-import cv2, os
+from onnxruntime import InferenceSession
+import cv2
 import numpy as np
 from .craft_utils import getDetBoxes, adjustResultCoordinates
 from .imgproc import resize_aspect_ratio, normalizeMeanVariance
-from .config import BASE_PATH
+from .config import DETECT_PATH
 
 
 
@@ -27,7 +27,7 @@ def test_net(canvas_size, mag_ratio, image, text_threshold, link_threshold, low_
     x = np.array(x)
 
     # forward pass
-    ort_session = onnxruntime.InferenceSession(os.path.join(BASE_PATH, "detectionModel.onnx"))
+    ort_session = InferenceSession(DETECT_PATH)
     ort_inputs = {ort_session.get_inputs()[0].name: x}
     ort_outs = ort_session.run(None, ort_inputs)
     y = ort_outs[0]

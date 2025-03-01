@@ -1,2 +1,5 @@
-include liteOCR/character/*.txt
-include liteOCR/*.onnx
+include LICENSE.txt
+include README.md
+
+include torchfree_ocr/onnx/*
+include torchfree_ocr/character/*
