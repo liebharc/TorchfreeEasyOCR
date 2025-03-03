@@ -26,6 +26,8 @@ class Reader(object):
         self.device = 'cpu'
         self.recognizer = recognizer
 
+        Path(MODULE_PATH).mkdir(parents=True, exist_ok=True)
+
         corrupt_msg = 'MD5 hash mismatch, possible file corruption'
 
         self.character_storage_directory = os.path.join(MODULE_PATH, 'character')

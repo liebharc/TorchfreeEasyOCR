@@ -17,7 +17,7 @@ setup(
     install_requires=requirements,
     entry_points={"console_scripts": ["torchfree_ocr= torchfree_ocr.cli:main"]},
     license='Apache License 2.0',
-    description='End-to-End English Optical Character Recognition',
+    description='EasyOCR without pytorch',
     long_description=readme(),
     long_description_content_type="text/markdown",
     url='https://github.com/SeldonHZ/torchfree-ocr-en',
