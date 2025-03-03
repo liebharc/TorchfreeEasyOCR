@@ -2,7 +2,6 @@ from PIL import Image
 import numpy as np
 from onnxruntime import InferenceSession
 from .utils import CTCLabelConverter
-from .config import RECOG_PATH
 import math
 
 
@@ -161,7 +160,7 @@ class AlignCollate:
         return image_tensors
 
 
-def recognizer_predict(converter, test_loader, batch_max_length,\
+def recognizer_predict(converter, test_loader, batch_max_length, recognition_path,\
                        ignore_idx, char_group_idx, decoder = 'greedy', beamWidth= 5, device = 'cpu'):
     result = []
 
@@ -169,7 +168,7 @@ def recognizer_predict(converter, test_loader, batch_max_length,\
         batch_size = image_tensors.shape[0]
         image = image_tensors[0]
 
-        ort_session = InferenceSession(RECOG_PATH)
+        ort_session = InferenceSession(recognition_path)
         ort_inputs = {ort_session.get_inputs()[0].name: image}
         ort_outs = ort_session.run(None, ort_inputs)
         preds = ort_outs[0]
@@ -220,7 +219,7 @@ def get_recognizer(character, separator_list, dict_list):
 
     return converter
 
-def get_text(character, imgH, imgW, converter, image_list,\
+def get_text(character, imgH, imgW, converter, image_list, recognition_path,\
              ignore_char = '', decoder = 'greedy', beamWidth =5, batch_size=1, contrast_ths=0.1,\
              adjust_contrast=0.5, filter_ths = 0.003, device = 'cpu'):
     batch_max_length = int(imgW/10)
@@ -240,7 +239,7 @@ def get_text(character, imgH, imgW, converter, image_list,\
         num_workers=0, collate_fn=AlignCollate_normal, drop_last=False)
 
     # predict first round
-    result1 = recognizer_predict(converter, test_loader,batch_max_length,\
+    result1 = recognizer_predict(converter, test_loader,batch_max_length, recognition_path,\
                                  ignore_idx, char_group_idx, decoder, beamWidth, device = device)
 
     # predict second round
@@ -252,7 +251,7 @@ def get_text(character, imgH, imgW, converter, image_list,\
         test_loader = NumPyDataLoader(
                         test_data, batch_size=batch_size, shuffle=False,
                         num_workers=0, collate_fn=AlignCollate_contrast, drop_last=False)
-        result2 = recognizer_predict(converter, test_loader, batch_max_length,\
+        result2 = recognizer_predict(converter, test_loader, batch_max_length, recognition_path,\
                                      ignore_idx, char_group_idx, decoder, beamWidth, device = device)
 
     result = []

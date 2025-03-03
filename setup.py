@@ -13,7 +13,7 @@ setup(
     name='torchfree_ocr',
     packages=['torchfree_ocr'],
     include_package_data=True,
-    version='1.0.1',
+    version='1.1.0',
     install_requires=requirements,
     entry_points={"console_scripts": ["torchfree_ocr= torchfree_ocr.cli:main"]},
     license='Apache License 2.0',

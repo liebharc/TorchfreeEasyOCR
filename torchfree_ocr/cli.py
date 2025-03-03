@@ -5,6 +5,14 @@ import torchfree_ocr
 def parse_args():
     parser = argparse.ArgumentParser(description="Process TorchfreeOCR.")
     parser.add_argument(
+        "-l",
+        "--lang",
+        nargs='+',
+        required=True,
+        type=str,
+        help="for languages",
+    )
+    parser.add_argument(
         "--recognizer",
         type=bool,
         choices=[True, False],

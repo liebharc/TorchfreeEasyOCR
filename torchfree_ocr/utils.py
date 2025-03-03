@@ -5,6 +5,8 @@ import math
 import cv2
 from PIL import Image, JpegImagePlugin
 import sys, os
+import hashlib
+from zipfile import ZipFile
 from .imgproc import loadImage
 
 if sys.version_info[0] == 2:
@@ -734,3 +736,51 @@ def merge_to_free(merge_result, free_list):
     merge_result = []
     [merge_result.extend(r) for r in merge_result_buf]
     return merge_result
+
+
+def printProgressBar(prefix='', suffix='', decimals=1, length=100, fill='█'):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    def progress_hook(count, blockSize, totalSize):
+        progress = count * blockSize / totalSize
+        percent = ("{0:." + str(decimals) + "f}").format(progress * 100)
+        filledLength = int(length * progress)
+        bar = fill * filledLength + '-' * (length - filledLength)
+        print(f'\r{prefix} |{bar}| {percent}% {suffix}', end='')
+
+    return progress_hook
+
+
+def download_and_unzip(url, filename, model_storage_directory, verbose=True):
+    zip_path = os.path.join(model_storage_directory, 'temp.zip')
+    reporthook = printProgressBar(prefix='Progress:', suffix='Complete', length=50) if verbose else None
+    urlretrieve(url, zip_path, reporthook=reporthook)
+    with ZipFile(zip_path, 'r') as zipObj:
+        zipObj.extract(filename, model_storage_directory)
+    os.remove(zip_path)
+    print("\n\n", end="")
+
+def download_and_unzip_all(url, model_storage_directory, verbose=True):
+    zip_path = os.path.join(model_storage_directory, 'temp.zip')
+    reporthook = printProgressBar(prefix='Progress:', suffix='Complete', length=50) if verbose else None
+    urlretrieve(url, zip_path, reporthook=reporthook)
+    with ZipFile(zip_path, 'r') as zipObj:
+        zipObj.extractall(model_storage_directory)
+    os.remove(zip_path)
+    print("\n\n", end="")
+
+
+def calculate_md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()

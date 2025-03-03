@@ -1,24 +1,33 @@
 # Torchless EasyOCR
 
-This package is EasyOCR-based English optical character recognition. Unlike EasyOCR, the package uses a pre-saved with `onnx` English language model, so it doesn't need a 1-2 Gb `pytorch` dependency. This is particularly useful for developing light-weight applications that utilize text recognition.
+This package is EasyOCR-based optical character recognition. Unlike EasyOCR, the package uses a pre-saved with `onnx` language models, so it doesn't need a 1-2 Gb `pytorch` dependency. This is particularly useful for developing and packaging light-weight applications that utilize text recognition.
 
 
 #### Comparison for virtual env size
 
 
-- **365 MB** torchfree_ocr with dependencies
-- **1.52 GB** easyocr with dependencies
-- **4.79 GB** easyocr with dependencies + GPU enabled
+- **272 MB** `torchfree_ocr` with dependencies
+- **1.52 GB** `easyocr` with dependencies
+- **4.79 GB** `easyocr` with dependencies + GPU enabled
 
+More importantly, packed python .exe loads and runs much faster with `torchfree_ocr`
+
+## requirements.txt
+``` bash
+opencv-python-headless
+numpy
+onnxruntime
+Pillow
+python-bidi
+```
 
 ## Limitations
-Each language requires generating a corresponding .onnx file, therefore, for the purpose of reducing package size only English is supported.
-Additionally, there is no GPU CUDA support.
+There is no GPU CUDA support.
 
 
 ## Performance of `torchfree_ocr` vs `easyocr`
 In terms of recognition, there is no visible recognition quality difference between `torchfree_ocr` and `easyocr`.
-In terms of speed `torchfree_ocr` works slightly faster than `easyocr` in CPU mode (~20% faster).
+In terms of speed `torchfree_ocr` works a bit faster than `easyocr` in CPU mode (~30% faster).
 Obviously, `easyocr` generally runs much faster in GPU mode, which `torchfree_ocr` doesn't support.
 
 ## Examples
@@ -38,12 +47,16 @@ For the latest release:
 ``` bash
 pip install torchfree_ocr
 ```
+or 
+``` bash
+pip install torchfree-ocr
+```
 
 ## Usage
 
 ``` python
 import torchfree_ocr
-reader = torchfree_ocr.Reader() # English recognition is default, other languages are not supported
+reader = torchfree_ocr.Reader(["en"]) # Supports all EasyOCR languages
 result = reader.readtext('english.png')
 ```
 
@@ -65,7 +78,7 @@ The output will be in a list format, each item represents a bounding box, the te
 ```
 Note 1: Instead of the filepath `english.png`, you can also pass an OpenCV image object (numpy array) or an image file as bytes. A URL to a raw image is also acceptable.
 
-Note 2: The line `reader = easyocr.Reader()` is for loading a model into memory. It takes some time but it needs to be run only once.
+Note 2: The line `reader = easyocr.Reader(["en"])` is for loading a model into memory. It takes some time but it needs to be run only once.
 
 You can also set `detail=0` for simpler output.
 
@@ -76,12 +89,12 @@ Result:
 ``` bash
 ['Reduce your risk of coronavirus infection:', 'Clean hands with soap and water', 'or alcohol-based hand rub', 'Cover nose and mouth when coughing and', 'sneezing with tissue or flexed elbow', 'Avoid close contact with anyone with', 'cold or flu-like symptoms', 'Thoroughly cook meat and eggs', 'No unprotected contact with live wild', 'or farm animals', 'World Health', 'Organization']
 ```
-Averall, usage is the same as with EasyOCR, except `Reader` in this package only has `recognizer=` parameter and there is no `readtextlang()` method.
+Averall, usage is the same as with EasyOCR, except `Reader` in this package only has `lang_list` and `recognizer=True` parameters.
 
 Usage for EasyOCR can be found in their [tutorial](https://www.jaided.ai/easyocr/tutorial) and [API Documentation](https://www.jaided.ai/easyocr/documentation).
 
 #### Run on command line
 
 ```shell
-$ torchfree_ocr -f english.png --detail=1
+$ torchfree_ocr -l en -f english.png --detail=1
 ```

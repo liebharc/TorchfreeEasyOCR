@@ -3,11 +3,10 @@ import cv2
 import numpy as np
 from .craft_utils import getDetBoxes, adjustResultCoordinates
 from .imgproc import resize_aspect_ratio, normalizeMeanVariance
-from .config import DETECT_PATH
 
 
 
-def test_net(canvas_size, mag_ratio, image, text_threshold, link_threshold, low_text, poly, device, estimate_num_chars=False):
+def test_net(canvas_size, mag_ratio, image, text_threshold, link_threshold, low_text, poly, device, detection_path, estimate_num_chars=False):
     if isinstance(image, np.ndarray) and len(image.shape) == 4:  # image is batch of np arrays
         image_arrs = image
     else:                                                        # image is single numpy array
@@ -27,7 +26,7 @@ def test_net(canvas_size, mag_ratio, image, text_threshold, link_threshold, low_
     x = np.array(x)
 
     # forward pass
-    ort_session = InferenceSession(DETECT_PATH)
+    ort_session = InferenceSession(detection_path)
     ort_inputs = {ort_session.get_inputs()[0].name: x}
     ort_outs = ort_session.run(None, ort_inputs)
     y = ort_outs[0]
@@ -60,13 +59,13 @@ def test_net(canvas_size, mag_ratio, image, text_threshold, link_threshold, low_
     return boxes_list, polys_list
 
 
-def get_textbox(image, canvas_size, mag_ratio, text_threshold, link_threshold, low_text, poly, device, optimal_num_chars=None, **kwargs):
+def get_textbox(image, canvas_size, mag_ratio, text_threshold, link_threshold, low_text, poly, device, detection_path, optimal_num_chars=None, **kwargs):
     result = []
     estimate_num_chars = optimal_num_chars is not None
     bboxes_list, polys_list = test_net(canvas_size, mag_ratio,
                                        image, text_threshold,
                                        link_threshold, low_text, poly,
-                                       device, estimate_num_chars)
+                                       device, detection_path, estimate_num_chars)
     if estimate_num_chars:
         polys_list = [[p for p, _ in sorted(polys, key=lambda x: abs(optimal_num_chars - x[1]))]
                       for polys in polys_list]
