@@ -20,7 +20,7 @@ setup(
     description='EasyOCR without pytorch',
     long_description=readme(),
     long_description_content_type="text/markdown",
-    url='https://github.com/SeldonHZ/torchfree-ocr-en',
-    download_url='https://github.com/SeldonHZ/torchfree-ocr-en.git',
+    url='https://github.com/SeldonHZ/TorchfreeEasyOCR',
+    download_url='https://github.com/SeldonHZ/TorchfreeEasyOCR.git',
     keywords=['ocr optical character recognition deep learning neural network'],
 )
