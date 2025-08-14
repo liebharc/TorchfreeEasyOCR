@@ -38,7 +38,7 @@ class Reader(object):
             LOGGER.info('Download complete.')
         else: # check if all files are intact
             sums = []
-            for filename in os.listdir(self.character_storage_directory):
+            for filename in sorted(os.listdir(self.character_storage_directory)):
                 if filename.endswith(".txt"):
                     sums.append(calculate_md5(os.path.join(self.character_storage_directory, filename)))
             if sums != character_md5sum:
